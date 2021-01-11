@@ -1,5 +1,6 @@
 .idea/
 .ipynb_checkpoints/
 **/results/
+**/.DS_Store
 
 load_data.ipynb
