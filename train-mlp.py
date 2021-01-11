@@ -25,16 +25,24 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)-12s %(leveln
                     datefmt="%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
 
-params_mlp = [dict(activation=["identity", "logistic", "tanh", "relu"])]
+# We find the Adam weight optimiser, adaptive learning rate and alpha=0.001 outperform the other options
+params_mlp = dict(activation=["logistic", "tanh"],
+                  hidden_layer_sizes=[(12, 12,), (24, 24,), (256, 256,)],
+                  learning_rate=["adaptive"],
+                  alpha=[0.001],
+                  shuffle=[False, True],
+                  max_iter=[500])
 
 label2int = {
     "fact": {"low": 0, "mixed": 1, "high": 2},
-    "bias": {"extreme-left": 0, "left-center": 1, "left": 2, "center": 3, "right-center": 4, "right": 5, "extreme-right": 6},
+    "bias": {"extreme-left": 0, "left-center": 1, "left": 2, "center": 3, "right-center": 4, "right": 5,
+             "extreme-right": 6},
 }
 
 int2label = {
     "fact": {0: "low", 1: "mixed", 2: "high"},
-    "bias": {0: "extreme-left", 1: "left-center", 2: "left", 3: "center", 4: "right-center", 5: "right", 6: "extreme-right"},
+    "bias": {0: "extreme-left", 1: "left-center", 2: "left", 3: "center", 4: "right-center", 5: "right",
+             6: "extreme-right"},
 }
 
 
@@ -129,7 +137,8 @@ if __name__ == "__main__":
     args.features = sorted([feature for feature in args.features.split(",")])
 
     # specify the output directory where the results will be stored
-    out_dir = os.path.join(args.home_dir, "data", args.dataset, f"results", f"{args.task}_{','.join(args.features)}")
+    out_dir = os.path.join(args.home_dir, "data", args.dataset, f"results", f"{args.task}_{','.join(args.features)}",
+                           f"mlp")
 
     # remove the output directory (if it already exists and args.clear_cache was set to TRUE)
     shutil.rmtree(out_dir) if args.clear_cache and os.path.exists(out_dir) else None
@@ -164,6 +173,7 @@ if __name__ == "__main__":
     actual = np.zeros(df.shape[0], dtype=np.int)
     predicted = np.zeros(df.shape[0], dtype=np.int)
     probs = np.zeros((df.shape[0], args.num_labels), dtype=np.float)
+    best_params = []
 
     i = 0
 
@@ -204,6 +214,7 @@ if __name__ == "__main__":
         # fine-tune the model
         clf_cv = GridSearchCV(MLPClassifier(), scoring="f1_macro", cv=num_folds, n_jobs=4, param_grid=params_mlp)
         clf_cv.fit(X["train"], y["train"])
+        best_params.append(clf_cv.best_estimator_)
 
         # train the final classifier using the best parameters during crossvalidation
         clf = MLPClassifier(
@@ -231,6 +242,8 @@ if __name__ == "__main__":
     logger.info(f"Accuracy: {results[1]}")
     logger.info(f"Flip Error-rate: {results[2]}")
     logger.info(f"MAE: {results[3]}")
+    logger.info(f"Best parameters for each fold:")
+    logger.info(best_params)
 
     # map the actual and predicted labels to their categorical format
     predicted = np.array([int2label[args.task][int(l)] for l in predicted])
@@ -256,4 +269,7 @@ if __name__ == "__main__":
     # write the experiment summary and outcome into a text file and save it to the output directory
     with open(os.path.join(out_dir, "results.txt"), "w") as f:
         f.write(summary.get_string(title="Experiment Summary") + "\n")
-        f.write(res.get_string(title="Results"))
+        f.write(res.get_string(title="Results") + "\n")
+        f.write("Best parameters at each fold:" + "\n")
+        for i in range(num_folds):
+            f.write(str(best_params[i]) + "\n")
