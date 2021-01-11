@@ -246,10 +246,11 @@ if __name__ == "__main__":
     predictions = {all_urls[i]: (actual[i], predicted[i]) for i in range(len(all_urls))}
 
     # create a dataframe that contains the list of m actual labels, the predictions with probabilities.  then store it in the output directory
-    df_out = pd.DataFrame(
-        {"source_url": all_urls, "actual": actual, "predicted": predicted, int2label[args.task][0]: probs[:, 0],
-         int2label[args.task][1]: probs[:, 1], int2label[args.task][2]: probs[:, 2], int2label[args.task][3]: probs[:, 3],
-         int2label[args.task][4]: probs[:, 4], int2label[args.task][5]: probs[:, 5], int2label[args.task][6]: probs[:, 6], })
+    df_data = {"source_url": all_urls, "actual": actual, "predicted": predicted}
+    df_probs = {int2label[args.task][i]: probs[:, i] for i in range(args.num_labels)}
+    df_data.update(df_probs)
+
+    df_out = pd.DataFrame(df_data)
     columns = ["source_url", "actual", "predicted"] + [int2label[args.task][i] for i in range(args.num_labels)]
     df_out.to_csv(os.path.join(out_dir, "predictions.tsv"), index=False, columns=columns)
 
