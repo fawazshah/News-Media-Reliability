@@ -6,6 +6,7 @@ import logging
 import argparse
 import itertools
 import pandas as pd
+import time
 from sklearn.neural_network import MLPClassifier
 from prettytable import PrettyTable
 from sklearn.preprocessing import MinMaxScaler
@@ -25,11 +26,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)-12s %(leveln
                     datefmt="%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
 
-# We find the Adam weight optimiser, adaptive learning rate and alpha=0.001 outperform the other options
-params_mlp = dict(activation=["logistic", "tanh"],
-                  hidden_layer_sizes=[(12, 12,), (24, 24,), (256, 256,)],
-                  learning_rate=["adaptive"],
-                  alpha=[0.001],
+# We find tanh activation and Adam weight optimiser outperform the other options
+params_mlp = dict(activation=["tanh"],
+                  hidden_layer_sizes=[(12,), (24,), (12, 12,), (24, 24,), (56, 56,)],
+                  learning_rate=["constant", "adaptive"],
+                  alpha=[0.001, 0.01, 0.1],
                   shuffle=[False, True],
                   max_iter=[500])
 
@@ -44,6 +45,12 @@ int2label = {
     "bias": {0: "extreme-left", 1: "left-center", 2: "left", 3: "center", 4: "right-center", 5: "right",
              6: "extreme-right"},
 }
+
+TWITTER_ALL = "has_twitter,twitter_created_at,twitter_description,twitter_engagement,twitter_haslocation,twitter_urlmatch,twitter_verified"
+WIKI_ALL = "has_wikipedia,wikipedia_categories,wikipedia_content,wikipedia_summary,wikipedia_toc"
+ARTICLE_ALL = "articles_body_glove,articles_title_glove"
+ALEXA = "alexa"
+FEATURE_MAPPING = {"TWITTER_ALL": TWITTER_ALL, "WIKI_ALL": WIKI_ALL, "ARTICLE_ALL": ARTICLE_ALL, "ALEXA": ALEXA}
 
 
 def calculate_metrics(actual, predicted):
@@ -134,7 +141,13 @@ if __name__ == "__main__":
         raise ValueError("No Features are specified")
 
     # create the list of features sorted alphabetically
-    args.features = sorted([feature for feature in args.features.split(",")])
+    features = args.features.split(",")
+    for i, feature in enumerate(features):
+        if feature in FEATURE_MAPPING.keys():
+            features.remove(feature)
+            features += FEATURE_MAPPING[feature].split(",")
+    args.features = sorted(features)
+
 
     # specify the output directory where the results will be stored
     out_dir = os.path.join(args.home_dir, "data", args.dataset, f"results", f"{args.task}_{','.join(args.features)}",
@@ -178,6 +191,7 @@ if __name__ == "__main__":
     i = 0
 
     logger.info("Start training...")
+    training_start = time.perf_counter()
 
     for f in range(num_folds):
         logger.info(f"Fold: {f}")
@@ -234,6 +248,12 @@ if __name__ == "__main__":
         probs[i: i + y["test"].shape[0], :] = prob
         i += y["test"].shape[0]
 
+    seconds = time.perf_counter() - training_start
+    hours = seconds // 3600
+    seconds = seconds % 3600
+    minutes = seconds // 60
+    seconds = seconds % 60
+
     # calculate the performance metrics on the whole set of predictions (5 folds all together)
     results = calculate_metrics(actual, predicted)
 
@@ -242,8 +262,10 @@ if __name__ == "__main__":
     logger.info(f"Accuracy: {results[1]}")
     logger.info(f"Flip Error-rate: {results[2]}")
     logger.info(f"MAE: {results[3]}")
+    logger.info(f"Training took {hours} hrs, {minutes} mins, {seconds} seconds.")
     logger.info(f"Best parameters for each fold:")
-    logger.info(best_params)
+    for param_set in best_params:
+        logger.info(str(param_set) + "\n")
 
     # map the actual and predicted labels to their categorical format
     predicted = np.array([int2label[args.task][int(l)] for l in predicted])
@@ -270,6 +292,7 @@ if __name__ == "__main__":
     with open(os.path.join(out_dir, "results.txt"), "w") as f:
         f.write(summary.get_string(title="Experiment Summary") + "\n")
         f.write(res.get_string(title="Results") + "\n")
+        f.write(f"Training took {hours} hrs, {minutes} mins, {seconds} seconds.\n")
         f.write("Best parameters at each fold:" + "\n")
-        for i in range(num_folds):
-            f.write(str(best_params[i]) + "\n")
+        for param_set in best_params:
+            f.write(str(param_set) + "\n")

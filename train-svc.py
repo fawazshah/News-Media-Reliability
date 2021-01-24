@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
-import sys
 import json
 import pickle
 import shutil
 import logging
 import argparse
 import itertools
-import collections
 import pandas as pd
+import time
 from sklearn.svm import SVC
 from prettytable import PrettyTable
 from sklearn.preprocessing import MinMaxScaler
@@ -39,6 +38,12 @@ int2label = {
     "fact": {0: "low", 1: "mixed", 2: "high"},
     "bias": {0: "extreme-left", 1: "left-center", 2: "left", 3: "center", 4: "right-center", 5: "right", 6: "extreme-right"},
 }
+
+TWITTER_ALL = "has_twitter,twitter_created_at,twitter_description,twitter_engagement,twitter_haslocation,twitter_urlmatch,twitter_verified"
+WIKI_ALL = "has_wikipedia,wikipedia_categories,wikipedia_content,wikipedia_summary,wikipedia_toc"
+ARTICLE_ALL = "articles_body_glove,articles_title_glove"
+ALEXA = "alexa"
+FEATURE_MAPPING = {"TWITTER_ALL": TWITTER_ALL, "WIKI_ALL": WIKI_ALL, "ARTICLE_ALL": ARTICLE_ALL, "ALEXA": ALEXA}
 
 
 def calculate_metrics(actual, predicted):
@@ -129,7 +134,12 @@ if __name__ == "__main__":
         raise ValueError("No Features are specified")
 
     # create the list of features sorted alphabetically
-    args.features = sorted([feature for feature in args.features.split(",")])
+    features = args.features.split(",")
+    for i, feature in enumerate(features):
+        if feature in FEATURE_MAPPING.keys():
+            features.remove(feature)
+            features += FEATURE_MAPPING[feature].split(",")
+    args.features = sorted(features)
 
     # specify the output directory where the results will be stored
     out_dir = os.path.join(args.home_dir, "data", args.dataset, f"results", f"{args.task}_{','.join(args.features)}", f"svm")
@@ -172,6 +182,7 @@ if __name__ == "__main__":
     i = 0
 
     logger.info("Start training...")
+    training_start = time.perf_counter()
 
     for f in range(num_folds):
         logger.info(f"Fold: {f}")
@@ -231,6 +242,12 @@ if __name__ == "__main__":
         probs[i: i + y["test"].shape[0], :] = prob
         i += y["test"].shape[0]
 
+    seconds = time.perf_counter() - training_start
+    hours = seconds // 3600
+    seconds = seconds % 3600
+    minutes = seconds // 60
+    seconds = seconds % 60
+
     # calculate the performance metrics on the whole set of predictions (5 folds all together)
     results = calculate_metrics(actual, predicted)
 
@@ -239,6 +256,7 @@ if __name__ == "__main__":
     logger.info(f"Accuracy: {results[1]}")
     logger.info(f"Flip Error-rate: {results[2]}")
     logger.info(f"MAE: {results[3]}")
+    logger.info(f"Training took {hours} hrs, {minutes} mins, {seconds} seconds.")
     logger.info(f"Best parameters for each fold:")
     logger.info(best_params)
 
@@ -267,6 +285,7 @@ if __name__ == "__main__":
     with open(os.path.join(out_dir, "results.txt"), "w") as f:
         f.write(summary.get_string(title="Experiment Summary") + "\n")
         f.write(res.get_string(title="Results") + "\n")
-        f.write("Best parameters at each fold:" + "\n")
+        f.write(f"Training took {hours} hrs, {minutes} mins, {seconds} seconds.\n")
+        f.write("Best parameters at each fold:\n")
         for i in range(num_folds):
             f.write(str(best_params[i]) + "\n")
