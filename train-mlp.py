@@ -5,6 +5,7 @@ import shutil
 import logging
 import argparse
 import itertools
+import matplotlib.pyplot as plt
 import pandas as pd
 import time
 from sklearn.neural_network import MLPClassifier
@@ -26,11 +27,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)-12s %(leveln
                     datefmt="%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
 
-# We find tanh activation and Adam weight optimiser outperform the other options
+# We find a mix of the following hyperparams to give the best performance
 params_mlp = dict(activation=["tanh"],
-                  hidden_layer_sizes=[(12,), (24,), (12, 12,), (24, 24,), (56, 56,)],
+                  hidden_layer_sizes=[(12,), (24,)],
                   learning_rate=["constant", "adaptive"],
-                  alpha=[0.001, 0.01, 0.1],
+                  alpha=[0.1, 1],
                   shuffle=[False, True],
                   max_iter=[500])
 
@@ -50,7 +51,12 @@ TWITTER_ALL = "has_twitter,twitter_created_at,twitter_description,twitter_engage
 WIKI_ALL = "has_wikipedia,wikipedia_categories,wikipedia_content,wikipedia_summary,wikipedia_toc"
 ARTICLE_ALL = "articles_body_glove,articles_title_glove"
 ALEXA = "alexa"
-FEATURE_MAPPING = {"TWITTER_ALL": TWITTER_ALL, "WIKI_ALL": WIKI_ALL, "ARTICLE_ALL": ARTICLE_ALL, "ALEXA": ALEXA}
+ALL = ",".join([TWITTER_ALL, WIKI_ALL, ARTICLE_ALL, ALEXA])
+FEATURE_MAPPING = {"TWITTER_ALL": TWITTER_ALL,
+                   "WIKI_ALL": WIKI_ALL,
+                   "ARTICLE_ALL": ARTICLE_ALL,
+                   "ALEXA": ALEXA,
+                   "ALL": ALL}
 
 
 def calculate_metrics(actual, predicted):
@@ -141,16 +147,17 @@ if __name__ == "__main__":
         raise ValueError("No Features are specified")
 
     # create the list of features sorted alphabetically
-    features = args.features.split(",")
-    for i, feature in enumerate(features):
+    original_features = args.features
+    args.features = args.features.split(",")
+    for i, feature in enumerate(args.features):
         if feature in FEATURE_MAPPING.keys():
-            features.remove(feature)
-            features += FEATURE_MAPPING[feature].split(",")
-    args.features = sorted(features)
+            args.features.remove(feature)
+            args.features += FEATURE_MAPPING[feature].split(",")
+    args.features = sorted(args.features)
 
 
     # specify the output directory where the results will be stored
-    out_dir = os.path.join(args.home_dir, "data", args.dataset, f"results", f"{args.task}_{','.join(args.features)}",
+    out_dir = os.path.join(args.home_dir, "data", args.dataset, f"results", f"{args.task}_{original_features}",
                            f"mlp")
 
     # remove the output directory (if it already exists and args.clear_cache was set to TRUE)
@@ -163,7 +170,7 @@ if __name__ == "__main__":
     summary = PrettyTable()
     summary.add_row(["task", args.task])
     summary.add_row(["classification mode", "single classifier"])
-    summary.add_row(["features", ", ".join(args.features)])
+    summary.add_row(["features", original_features])
     print(summary)
 
     # read the dataset
@@ -233,8 +240,15 @@ if __name__ == "__main__":
         # train the final classifier using the best parameters during crossvalidation
         clf = MLPClassifier(
             activation=clf_cv.best_estimator_.activation,
+            hidden_layer_sizes=clf_cv.best_estimator_.hidden_layer_sizes,
+            learning_rate=clf_cv.best_estimator_.learning_rate,
+            alpha=clf_cv.best_estimator_.alpha,
+            shuffle=clf_cv.best_estimator_.shuffle,
+            max_iter=clf_cv.best_estimator_.max_iter
         )
         clf.fit(X["train"], y["train"])
+        plt.plot(clf.loss_curve_)
+        plt.show()
 
         # generate predictions
         pred = clf.predict(X["test"])

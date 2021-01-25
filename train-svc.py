@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import json
-import pickle
 import shutil
 import logging
 import argparse
@@ -43,7 +42,12 @@ TWITTER_ALL = "has_twitter,twitter_created_at,twitter_description,twitter_engage
 WIKI_ALL = "has_wikipedia,wikipedia_categories,wikipedia_content,wikipedia_summary,wikipedia_toc"
 ARTICLE_ALL = "articles_body_glove,articles_title_glove"
 ALEXA = "alexa"
-FEATURE_MAPPING = {"TWITTER_ALL": TWITTER_ALL, "WIKI_ALL": WIKI_ALL, "ARTICLE_ALL": ARTICLE_ALL, "ALEXA": ALEXA}
+ALL = ",".join([TWITTER_ALL, WIKI_ALL, ARTICLE_ALL, ALEXA])
+FEATURE_MAPPING = {"TWITTER_ALL": TWITTER_ALL,
+                   "WIKI_ALL": WIKI_ALL,
+                   "ARTICLE_ALL": ARTICLE_ALL,
+                   "ALEXA": ALEXA,
+                   "ALL": ALL}
 
 
 def calculate_metrics(actual, predicted):
@@ -134,15 +138,16 @@ if __name__ == "__main__":
         raise ValueError("No Features are specified")
 
     # create the list of features sorted alphabetically
-    features = args.features.split(",")
-    for i, feature in enumerate(features):
+    original_features = args.features
+    args.features = args.features.split(",")
+    for i, feature in enumerate(args.features):
         if feature in FEATURE_MAPPING.keys():
-            features.remove(feature)
-            features += FEATURE_MAPPING[feature].split(",")
-    args.features = sorted(features)
+            args.features.remove(feature)
+            args.features += FEATURE_MAPPING[feature].split(",")
+    args.features = sorted(args.features)
 
     # specify the output directory where the results will be stored
-    out_dir = os.path.join(args.home_dir, "data", args.dataset, f"results", f"{args.task}_{','.join(args.features)}", f"svm")
+    out_dir = os.path.join(args.home_dir, "data", args.dataset, f"results", f"{args.task}_{original_features}", f"svm")
 
     # remove the output directory (if it already exists and args.clear_cache was set to TRUE)
     shutil.rmtree(out_dir) if args.clear_cache and os.path.exists(out_dir) else None
@@ -154,7 +159,7 @@ if __name__ == "__main__":
     summary = PrettyTable()
     summary.add_row(["task", args.task])
     summary.add_row(["classification mode", "single classifier"])
-    summary.add_row(["features", ", ".join(args.features)])
+    summary.add_row(["features", original_features])
     print(summary)
 
     # read the dataset
