@@ -178,7 +178,7 @@ if __name__ == "__main__":
         for feature in args.features}
 
     # create placeholders where predictions will be cumulated over the different folds
-    all_urls = []
+    all_test_urls = []
     actual = np.zeros(df.shape[0], dtype=np.int)
     predicted = np.zeros(df.shape[0], dtype=np.int)
     probs = np.zeros((df.shape[0], args.num_labels), dtype=np.float)
@@ -198,7 +198,7 @@ if __name__ == "__main__":
             "test": splits[str(f)]["test"],
         }
 
-        all_urls.extend(splits[str(f)]["test"])
+        all_test_urls.extend(splits[str(f)]["test"])
 
         # initialize the features and labels matrices
         X, y = {}, {}
@@ -270,10 +270,10 @@ if __name__ == "__main__":
     actual = np.array([int2label[args.task][int(l)] for l in actual])
 
     # create a dictionary: the keys are the media, and the values are their actual and predicted labels
-    predictions = {all_urls[i]: (actual[i], predicted[i]) for i in range(len(all_urls))}
+    predictions = {all_test_urls[i]: (actual[i], predicted[i]) for i in range(len(all_test_urls))}
 
     # create a dataframe that contains the list of m actual labels, the predictions with probabilities.  then store it in the output directory
-    df_data = {"source_url": all_urls, "actual": actual, "predicted": predicted}
+    df_data = {"source_url": all_test_urls, "actual": actual, "predicted": predicted}
     df_probs = {int2label[args.task][i]: probs[:, i] for i in range(args.num_labels)}
     df_data.update(df_probs)
 
