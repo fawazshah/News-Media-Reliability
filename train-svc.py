@@ -5,15 +5,18 @@ import shutil
 import logging
 import argparse
 import itertools
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import time
+from sklearn.model_selection import learning_curve
 from sklearn.svm import SVC
 from prettytable import PrettyTable
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score
 
-import numpy as np
+from shared import label2int, int2label, FEATURE_MAPPING
 
 np.random.seed(16)
 
@@ -27,27 +30,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)-12s %(leveln
 logger = logging.getLogger(__name__)
 
 params_svm = [dict(kernel=["rbf"], gamma=np.logspace(-6, 1, 8), C=np.logspace(-2, 2, 5))]
-
-label2int = {
-    "fact": {"low": 0, "mixed": 1, "high": 2},
-    "bias": {"extreme-left": 0, "left-center": 1, "left": 2, "center": 3, "right-center": 4, "right": 5, "extreme-right": 6},
-}
-
-int2label = {
-    "fact": {0: "low", 1: "mixed", 2: "high"},
-    "bias": {0: "extreme-left", 1: "left-center", 2: "left", 3: "center", 4: "right-center", 5: "right", 6: "extreme-right"},
-}
-
-TWITTER_ALL = "has_twitter,twitter_created_at,twitter_description,twitter_engagement,twitter_haslocation,twitter_urlmatch,twitter_verified"
-WIKI_ALL = "has_wikipedia,wikipedia_categories,wikipedia_content,wikipedia_summary,wikipedia_toc"
-ARTICLE_ALL = "articles_body_glove,articles_title_glove"
-ALEXA = "alexa"
-ALL = ",".join([TWITTER_ALL, WIKI_ALL, ARTICLE_ALL, ALEXA])
-FEATURE_MAPPING = {"TWITTER_ALL": TWITTER_ALL,
-                   "WIKI_ALL": WIKI_ALL,
-                   "ARTICLE_ALL": ARTICLE_ALL,
-                   "ALEXA": ALEXA,
-                   "ALL": ALL}
 
 
 def calculate_metrics(actual, predicted):
@@ -232,6 +214,14 @@ if __name__ == "__main__":
             C=clf_cv.best_estimator_.C,
             probability=True
         )
+
+        train_sizes, train_scores, test_scores = learning_curve(clf, np.vstack((X["train"], X["test"])), np.concatenate([y["train"], y["test"]]), cv=5)
+        plt.plot(train_sizes, train_scores, 'o-', color='r', label="Training error")
+        plt.plot(train_sizes, test_scores, 'o-', color='g', label="Test error")
+        plt.legend(loc="best")
+        plt.show()
+
+
         clf.fit(X["train"], y["train"])
 
         # generate predictions
