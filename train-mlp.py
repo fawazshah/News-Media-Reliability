@@ -31,8 +31,8 @@ logger = logging.getLogger(__name__)
 params_mlp = dict(activation=["tanh"],
                   hidden_layer_sizes=[(12,), (24,)],
                   learning_rate=["constant", "adaptive"],
+                  early_stopping=[False],
                   alpha=[0.1, 1],
-                  shuffle=[False, True],
                   max_iter=[500])
 
 label2int = {
@@ -147,17 +147,15 @@ if __name__ == "__main__":
         raise ValueError("No Features are specified")
 
     # create the list of features sorted alphabetically
-    original_features = args.features
-    args.features = args.features.split(",")
-    for i, feature in enumerate(args.features):
+    bare_features = []
+    for i, feature in enumerate(args.features.split(",")):
         if feature in FEATURE_MAPPING.keys():
-            args.features.remove(feature)
-            args.features += FEATURE_MAPPING[feature].split(",")
-    args.features = sorted(args.features)
+            bare_features += FEATURE_MAPPING[feature].split(",")
+    bare_features = sorted(bare_features)
 
 
     # specify the output directory where the results will be stored
-    out_dir = os.path.join(args.home_dir, "data", args.dataset, f"results", f"{args.task}_{original_features}",
+    out_dir = os.path.join(args.home_dir, "data", args.dataset, f"results", f"{args.task}_{args.features}",
                            f"mlp")
 
     # remove the output directory (if it already exists and args.clear_cache was set to TRUE)
@@ -170,7 +168,7 @@ if __name__ == "__main__":
     summary = PrettyTable()
     summary.add_row(["task", args.task])
     summary.add_row(["classification mode", "single classifier"])
-    summary.add_row(["features", original_features])
+    summary.add_row(["features", args.features])
     print(summary)
 
     # read the dataset
@@ -186,7 +184,7 @@ if __name__ == "__main__":
     # create the features dictionary: each key corresponds to a feature type, and its value is the pre-computed features dictionary
     features = {
         feature: json.load(open(os.path.join(args.home_dir, "data", args.dataset, "features", f"{feature}.json"), "r"))
-        for feature in args.features}
+        for feature in bare_features}
 
     # create placeholders where predictions will be cumulated over the different folds
     all_test_urls = []
@@ -216,13 +214,13 @@ if __name__ == "__main__":
 
         # concatenate the different features/labels for the training sources
         X["train"] = np.asmatrix(
-            [list(itertools.chain(*[features[feat][url] for feat in args.features])) for url in urls["train"]]).astype(
+            [list(itertools.chain(*[features[feat][url] for feat in bare_features])) for url in urls["train"]]).astype(
             "float")
         y["train"] = np.array([labels[url] for url in urls["train"]], dtype=np.int)
 
         # concatenate the different features/labels for the testing sources
         X["test"] = np.asmatrix(
-            [list(itertools.chain(*[features[feat][url] for feat in args.features])) for url in urls["test"]]).astype(
+            [list(itertools.chain(*[features[feat][url] for feat in bare_features])) for url in urls["test"]]).astype(
             "float")
         y["test"] = np.array([labels[url] for url in urls["test"]], dtype=np.int)
 
