@@ -4,11 +4,9 @@ import json
 import shutil
 import logging
 import itertools
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import time
-from sklearn.model_selection import learning_curve
 from sklearn.svm import SVC
 from prettytable import PrettyTable
 from sklearn.preprocessing import MinMaxScaler
@@ -133,14 +131,6 @@ if __name__ == "__main__":
             C=clf_cv.best_estimator_.C,
             probability=True
         )
-
-        train_sizes, train_scores, test_scores = learning_curve(clf, np.vstack((X["train"], X["test"])), np.concatenate([y["train"], y["test"]]), cv=5)
-        plt.plot(train_sizes, train_scores, 'o-', color='r', label="Training error")
-        plt.plot(train_sizes, test_scores, 'o-', color='g', label="Test error")
-        plt.legend(loc="best")
-        plt.show()
-
-
         clf.fit(X["train"], y["train"])
 
         # generate predictions
