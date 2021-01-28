@@ -3,7 +3,6 @@ import os
 import json
 import shutil
 import logging
-import argparse
 import itertools
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,7 +13,6 @@ from sklearn.svm import SVC
 from prettytable import PrettyTable
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import confusion_matrix, f1_score, accuracy_score
 
 from shared import label2int, int2label, FEATURE_MAPPING, parse_arguments, calculate_metrics
 
