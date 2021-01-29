@@ -37,6 +37,7 @@ if __name__ == "__main__":
         raise ValueError("No Features are specified")
 
     # create the list of features sorted alphabetically
+    # We decompose bundled features like TWITTER_ALL into their constituents
     bare_features = []
     for i, feature in enumerate(args.features.split(",")):
         if feature in FEATURE_MAPPING.keys():
