@@ -69,13 +69,13 @@ if __name__ == "__main__":
     print(summary)
 
     # read the dataset
-    df = pd.read_csv(os.path.join(args.home_dir, "data", args.dataset, "corpus.tsv"), sep="\t")
+    df = pd.read_csv(os.path.join(args.home_dir, "data", args.dataset, "corpus-modified.tsv"), sep="\t")
 
     # create a dictionary: the keys are the media and the values are their corresponding labels (transformed to int)
     labels = {df["source_url_normalized"][i]: label2int[args.task][df[args.task][i]] for i in range(df.shape[0])}
 
     # load the evaluation splits
-    splits = json.load(open(os.path.join(args.home_dir, "data", args.dataset, f"splits.json"), "r"))
+    splits = json.load(open(os.path.join(args.home_dir, "data", args.dataset, f"splits-modified.json"), "r"))
     num_folds = len(splits)
 
     # create the features dictionary: each key corresponds to a feature type, and its value is the pre-computed features dictionary
