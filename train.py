@@ -4,11 +4,9 @@ import json
 import shutil
 import logging
 import itertools
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import time
-from sklearn.neural_network import MLPClassifier
 from prettytable import PrettyTable
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import GridSearchCV
@@ -26,16 +24,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)-12s %(leveln
                     datefmt="%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
 
-# We find a mix of the following hyperparams to give the best performance
-params_mlp = dict(activation=["tanh"],
-                  hidden_layer_sizes=[(12,), (24,)],
-                  learning_rate=["constant", "adaptive"],
-                  early_stopping=[False],
-                  alpha=[0.1, 1],
-                  max_iter=[500])
 
-
-if __name__ == "__main__":
+def train_model(model):
 
     # parse the command-line arguments
     args = parse_arguments()
@@ -44,16 +34,15 @@ if __name__ == "__main__":
         raise ValueError("No Features are specified")
 
     # create the list of features sorted alphabetically
+    # We decompose bundled features like TWITTER_ALL into their constituents
     bare_features = []
     for i, feature in enumerate(args.features.split(",")):
         if feature in FEATURE_MAPPING.keys():
             bare_features += FEATURE_MAPPING[feature].split(",")
     bare_features = sorted(bare_features)
 
-
     # specify the output directory where the results will be stored
-    out_dir = os.path.join(args.home_dir, "data", args.dataset, f"results", f"{args.task}_{args.features}",
-                           f"mlp")
+    out_dir = os.path.join(args.home_dir, "data", args.dataset, f"results", f"{args.task}_{args.features}", model.get_name())
 
     # remove the output directory (if it already exists and args.clear_cache was set to TRUE)
     shutil.rmtree(out_dir) if args.clear_cache and os.path.exists(out_dir) else None
@@ -64,7 +53,7 @@ if __name__ == "__main__":
     # display the experiment summary in a tabular format
     summary = PrettyTable()
     summary.add_row(["task", args.task])
-    summary.add_row(["classification mode", "single classifier"])
+    summary.add_row(["classifier", model.get_name().upper()])
     summary.add_row(["features", args.features])
     print(summary)
 
@@ -81,7 +70,8 @@ if __name__ == "__main__":
     # create the features dictionary: each key corresponds to a feature type, and its value is the pre-computed features dictionary
     features = {
         feature: json.load(open(os.path.join(args.home_dir, "data", args.dataset, "features", f"{feature}.json"), "r"))
-        for feature in bare_features}
+        for feature in bare_features
+    }
 
     # create placeholders where predictions will be cumulated over the different folds
     all_test_urls = []
@@ -128,22 +118,14 @@ if __name__ == "__main__":
         X["test"] = scaler.transform(X["test"])
 
         # fine-tune the model
-        clf_cv = GridSearchCV(MLPClassifier(), scoring="f1_macro", cv=num_folds, n_jobs=4, param_grid=params_mlp)
+        clf_cv = GridSearchCV(model.get_classifier(), scoring="f1_macro", cv=num_folds, n_jobs=4, param_grid=model.get_gridsearch_params())
         clf_cv.fit(X["train"], y["train"])
         best_params.append(clf_cv.best_estimator_)
 
         # train the final classifier using the best parameters during crossvalidation
-        clf = MLPClassifier(
-            activation=clf_cv.best_estimator_.activation,
-            hidden_layer_sizes=clf_cv.best_estimator_.hidden_layer_sizes,
-            learning_rate=clf_cv.best_estimator_.learning_rate,
-            alpha=clf_cv.best_estimator_.alpha,
-            shuffle=clf_cv.best_estimator_.shuffle,
-            max_iter=clf_cv.best_estimator_.max_iter
-        )
+        clf = model.get_best_classifier(clf_cv)
+
         clf.fit(X["train"], y["train"])
-        plt.plot(clf.loss_curve_)
-        plt.show()
 
         # generate predictions
         pred = clf.predict(X["test"])
@@ -173,8 +155,7 @@ if __name__ == "__main__":
     logger.info(f"MAE: {results[3]}")
     logger.info(f"Training took {hours} hrs, {minutes} mins, {seconds} seconds.")
     logger.info(f"Best parameters for each fold:")
-    for param_set in best_params:
-        logger.info(str(param_set) + "\n")
+    logger.info(best_params)
 
     # map the actual and predicted labels to their categorical format
     predicted = np.array([int2label[args.task][int(l)] for l in predicted])
@@ -202,6 +183,6 @@ if __name__ == "__main__":
         f.write(summary.get_string(title="Experiment Summary") + "\n")
         f.write(res.get_string(title="Results") + "\n")
         f.write(f"Training took {hours} hrs, {minutes} mins, {seconds} seconds.\n")
-        f.write("Best parameters at each fold:" + "\n")
-        for param_set in best_params:
-            f.write(str(param_set) + "\n")
+        f.write("Best parameters at each fold:\n")
+        for i in range(num_folds):
+            f.write(str(best_params[i]) + "\n")
