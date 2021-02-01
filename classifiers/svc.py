@@ -4,7 +4,7 @@ from sklearn.svm import SVC
 from train import train_model
 
 
-class SVC_wrapper():
+class SVCWrapper:
 
     def __init__(self):
         pass
@@ -30,4 +30,4 @@ class SVC_wrapper():
             probability=True
         )
 
-train_model(SVC_wrapper)
+train_model(SVCWrapper)

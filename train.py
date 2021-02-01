@@ -130,7 +130,7 @@ def train_model(model):
         # generate predictions
         pred = clf.predict(X["test"])
 
-        # generate probabilites
+        # generate probabilities
         prob = clf.predict_proba(X["test"])
 
         # cumulate the actual and predicted labels, and the probabilities over the different folds.  then, move the index

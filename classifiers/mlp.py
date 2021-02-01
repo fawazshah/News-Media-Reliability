@@ -1,10 +1,9 @@
-import numpy as np
 from sklearn.neural_network import MLPClassifier
 
 from train import train_model
 
 
-class MLP_wrapper():
+class MLPWrapper:
 
     def __init__(self):
         pass
@@ -37,4 +36,4 @@ class MLP_wrapper():
             max_iter=clf.best_estimator_.max_iter
         )
 
-train_model(MLP_wrapper)
+train_model(MLPWrapper)
