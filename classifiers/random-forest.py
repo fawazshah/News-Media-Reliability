@@ -19,7 +19,7 @@ class RandomForestWrapper:
 
     @staticmethod
     def get_gridsearch_params():
-        return dict(n_estimators=np.arange(10, 200, 10),
+        return dict(n_estimators=np.arange(50, 250, 25),
                     criterion=["gini", "entropy"],
                     min_samples_leaf=np.arange(1, 10, 1)
                     )
