@@ -151,8 +151,8 @@ def train_model(model):
     # display the performance metrics
     logger.info(f"Macro-F1: {results[0]}")
     logger.info(f"Accuracy: {results[1]}")
-    logger.info(f"Flip Error-rate: {results[2]}")
-    logger.info(f"MAE: {results[3]}")
+    logger.info(f"MAE: {results[2]}")
+    logger.info(f"MAEM: {results[3]}")
     logger.info(f"Training took {hours} hrs, {minutes} mins, {seconds} seconds.")
     logger.info(f"Best parameters for each fold:")
     logger.info(best_params)
@@ -175,7 +175,7 @@ def train_model(model):
 
     # write the experiment results in a tabular format
     res = PrettyTable()
-    res.field_names = ["Macro-F1", "Accuracy", "Flip error-rate", "MAE"]
+    res.field_names = ["Macro-F1", "Accuracy", "MAE", "MAEM"]
     res.add_row(results)
 
     # write the experiment summary and outcome into a text file and save it to the output directory
