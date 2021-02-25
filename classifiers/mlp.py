@@ -1,6 +1,6 @@
 from sklearn.neural_network import MLPClassifier
 
-from train import train_model
+from train_precomp import train_model
 
 
 class MLPWrapper:

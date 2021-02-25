@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.ensemble import AdaBoostClassifier
 
-from train import train_model
+from train_precomp import train_model
 
 
 class AdaBoostWrapper:

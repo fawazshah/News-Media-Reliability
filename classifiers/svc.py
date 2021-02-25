@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.svm import SVC
 
-from train import train_model
+from train_precomp import train_model
 
 
 class SVCWrapper:

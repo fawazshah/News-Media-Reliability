@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 
-from train import train_model
+from train_precomp import train_model
 
 
 class DecisionTreeWrapper:
