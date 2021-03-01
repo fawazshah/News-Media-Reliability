@@ -1,3 +1,7 @@
+This repository forms part of my Masters' thesis work at Imperial College London. Credit goes to Ramy Baly, Georgi Karadzhov, Dimitar Alexandrov, James Glass and Preslav Nakov for providing their data and features in `data/emnlp18` and `data/acl2020`, as well as the content of `train_precomp.py` and `shared.py`: 
+
+The original README:
+
 # Factuality and Bias Prediction of News Media
 
 This repository describes the work that was published in two papers (see citations below) on predicting the factuality and political bias in news media. Each paper proposes a different set of engineered features collected from sources of information related to the target media.
