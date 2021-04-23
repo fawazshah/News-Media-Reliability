@@ -18,4 +18,4 @@ print(df['bias'].value_counts())
 
 # Write out
 
-df.to_csv('../data/emnlp18/corpus-modified.tsv', sep='\t')
+df.to_csv('../data/emnlp18/corpus-balanced-classes.tsv', sep='\t')

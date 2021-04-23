@@ -3,7 +3,7 @@ import json
 import numpy as np
 import pandas as pd
 
-df = pd.read_csv('../data/emnlp18/corpus-modified.tsv', sep='\t')
+df = pd.read_csv('../data/emnlp18/corpus-balanced-classes.tsv', sep='\t')
 all_urls = df["source_url_normalized"].values
 
 output = {}
@@ -18,5 +18,5 @@ for i in range(5):
     train_test_split = {"train": train, "test": test}
     output[f"{i}"] = train_test_split
 
-with open("../data/emnlp18/splits-modified.json", "w") as f:
+with open("../data/emnlp18/splits-balanced-classes.json", "w") as f:
     json.dump(output, f)
